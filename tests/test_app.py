@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from astria_common.envguard import EnvironmentGuardError
 from fastapi.testclient import TestClient
@@ -7,8 +9,9 @@ from astria_identity.main import build_app
 from astria_identity.settings import Settings
 
 
-def test_health_and_ready_without_dependencies() -> None:
-    with TestClient(build_app(Settings(env="test"))) as client:
+def test_health_and_ready_without_dependencies(tmp_path: Path) -> None:
+    settings = Settings(env="test", signing_key_path=tmp_path / "signing.pem")
+    with TestClient(build_app(settings)) as client:
         health = client.get("/health").json()
         assert health["service"] == "identity"
         assert health["env"] == "test"
