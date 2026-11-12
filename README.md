@@ -10,11 +10,11 @@
 
 Akun, peran, dan sesi.
 
-> Status: versi penuh (identity#4): login, sesi, peran, pairing, token layanan, kunci. Kontrak: `contracts/openapi/identity-internal.yaml` dan `contracts/events/identity.revoked.schema.json` (contracts v0.4.0). Repo ini adalah submodule dari workspace `triase-dfir` (folder `identity/`). Rancangan: `notes/2026-11-06-triase-dfir-app-identity.md` di repo root. Lajur developer: 3.
+> Status: versi penuh (identity#4) dengan skema lewat migrasi Alembic: login, sesi, peran, pairing, token layanan, kunci. Kontrak: `contracts/openapi/identity-internal.yaml` dan `contracts/events/identity.revoked.schema.json` (contracts v0.4.0). Repo ini adalah submodule dari workspace `triase-dfir` (folder `identity/`). Rancangan: `notes/2026-11-06-triase-dfir-app-identity.md` di repo root. Lajur developer: 3.
 
 ## Tech stack
 
-Python 3.14, FastAPI, SQLAlchemy Core async (PostgreSQL 18; SQLite untuk uji lokal), argon2id (argon2-cffi), AES-256-GCM dan Ed25519 (cryptography), uv
+Python 3.14, FastAPI, SQLAlchemy Core async (PostgreSQL 18; SQLite untuk uji lokal), Alembic (migrasi skema), argon2id (argon2-cffi), AES-256-GCM dan Ed25519 (cryptography), uv
 
 ## Yang dilakukan
 
@@ -32,11 +32,32 @@ Python 3.14, FastAPI, SQLAlchemy Core async (PostgreSQL 18; SQLite untuk uji lok
 ## Menyiapkan
 
 1. Isi `ASTRIA_DATABASE_URL` (PostgreSQL), `ASTRIA_SIGNING_KEY_PATH` (folder yang bisa ditulis; kunci dan `master.key` dibuat saat start pertama, izin 0600) dan `ASTRIA_SERVICE_KEYS_FILE` (JSON `{"<layanan>": "<kunci 32 byte hex>"}`; disemai terenkripsi sekali, rotasi sesudahnya lewat API).
-2. Admin pertama: `IDENTITY_BOOTSTRAP_PASSWORD='...' astria-identity bootstrap-admin --username <nama>` (tanpa variabel itu, kata sandi diminta tanpa gema). Menolak bila admin sudah ada, kecuali `--force`. Kata sandi tidak pernah lewat argumen.
-3. Rotasi kunci tanda tangan: `astria-identity rotate-signing-key`. Kunci lama tetap sah 24 jam; layanan yang berjalan memuat berkas baru dalam sekitar 30 detik, jadi tidak perlu restart.
-4. `astria-identity verify-config` memeriksa konfigurasi dan kunci tanpa menjalankan layanan.
+2. Skema: saat start, layanan memigrasikan skemanya sendiri (lihat [Migrasi skema](#migrasi-skema)). Untuk menjalankannya tanpa start layanan: `astria-identity migrate`.
+3. Admin pertama: `IDENTITY_BOOTSTRAP_PASSWORD='...' astria-identity bootstrap-admin --username <nama>` (tanpa variabel itu, kata sandi diminta tanpa gema). Menolak bila admin sudah ada, kecuali `--force`. Kata sandi tidak pernah lewat argumen.
+4. Rotasi kunci tanda tangan: `astria-identity rotate-signing-key`. Kunci lama tetap sah 24 jam; layanan yang berjalan memuat berkas baru dalam sekitar 30 detik, jadi tidak perlu restart.
+5. `astria-identity verify-config` memeriksa konfigurasi dan kunci tanpa menjalankan layanan.
 
 Pengguna dev (hanya dev, `ASTRIA_ENV=prod` menolak): `ASTRIA_SEED_USERS_FILE` menunjuk JSON `[{"username","password","roles","user_id"?,"display_name"?}]`.
+
+## Migrasi skema
+
+Skema dikelola Alembic (`src/astria_identity/migrations/`, baseline `0001_baseline` untuk tabel `tables.py` dan tabel outbox `astria-common`). Tidak ada `create_all` lagi. Aturan saat start, berdasarkan tabel yang sudah ada di skema layanan:
+
+| Kondisi di basis data | Tindakan |
+|---|---|
+| Ada tabel `alembic_version` | `upgrade head` (no-op bila sudah di head) |
+| Skema kosong | `upgrade head`: membuat baseline |
+| Semua tabel ada, belum ada riwayat (DB lama dari `create_all`) | `stamp head` tanpa DDL; data tidak disentuh |
+| Sebagian tabel saja | Galat, tidak ada perubahan; perbaiki manual atau kosongkan skema |
+
+`/ready` menjawab `down` (komponen `migrations`) sampai migrasi selesai; bootstrap menunggu migrasi. Perintah:
+
+```text
+astria-identity migrate            # upgrade head, atau stamp bila skema lama
+astria-identity migrate --stamp    # hanya stamp head; menolak skema kosong
+```
+
+Aturan untuk perubahan skema: tambah revisi baru di `versions/` (jangan ubah `0001_baseline`), lalu uji dengan `tests/test_migrations.py`. Baseline ditulis tetap, tidak dibaca dari metadata.
 
 ## Konfigurasi
 
@@ -65,7 +86,7 @@ Semua dengan awalan `ASTRIA_` (selain yang disebut di atas).
 ```text
 uv sync                                   # butuh akses ke repo privat contracts dan common (tag git)
 uv run ruff format --check . && uv run ruff check .
-uv run pytest                              # SQLite sementara; tambahkan ASTRIA_TEST_DATABASE_URL untuk uji integrasi PostgreSQL (skema sementara, dihapus sesudahnya)
+uv run pytest                              # SQLite sementara; tambahkan ASTRIA_TEST_DATABASE_URL untuk uji integrasi dan migrasi PostgreSQL (skema sementara, dihapus sesudahnya)
 sh ../common/template/localtest.sh        # di kontainer py devenv: uji terhadap salinan kerja common dan contracts
 ```
 
