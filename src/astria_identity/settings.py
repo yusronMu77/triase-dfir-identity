@@ -18,3 +18,7 @@ class Settings(AstriaSettings):
     """Layanan yang boleh membawa klaim `act` (pengguna pemicu) di token yang dimintanya."""
 
     token_ttl_seconds: int = 300
+
+    identity_seed_file: Path | None = None
+    """ASTRIA_IDENTITY_SEED_FILE: JSON {"users": [...]} pengguna dan peran dev, diterapkan idempoten saat start.
+    Dilarang di `prod`; butuh ASTRIA_DATABASE_URL."""

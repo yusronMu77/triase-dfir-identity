@@ -54,6 +54,10 @@ class KeyStore:
             self.error = type(exc).__name__
             log.error("kunci_gagal_dimuat", error=self.error)
 
+    def jwks(self) -> dict[str, list[dict[str, str]]]:
+        """Kunci publik yang diterbitkan di `GET /internal/v1/keys`; identity juga memverifikasi tokennya dengan ini."""
+        return {"keys": [self.signing.public_jwk()] if self.signing else []}
+
     async def stop(self) -> None:
         return None
 
