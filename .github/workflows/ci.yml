@@ -23,6 +23,14 @@ jobs:
   check:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18.6-alpine
+        env:
+          POSTGRES_PASSWORD: ci-only-not-a-secret
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 3s --health-retries 12
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -40,7 +48,10 @@ jobs:
       - run: uv sync --locked
       - run: uv run ruff format --check .
       - run: uv run ruff check .
-      - run: uv run pytest -q
+      - name: pytest (termasuk integrasi PostgreSQL)
+        env:
+          ASTRIA_TEST_DATABASE_URL: postgresql+psycopg://postgres:ci-only-not-a-secret@127.0.0.1:5432/postgres
+        run: uv run pytest -q
       - name: gitleaks
         run: docker run --rm -v "$PWD:/repo" -w /repo "$GITLEAKS_IMAGE" git --redact --no-banner /repo
 
@@ -59,7 +70,8 @@ jobs:
         run: docker build --secret id=gh_token,env=GH_TOKEN -t astria-identity:ci .
       - name: Smoke /ready
         run: |
-          docker run -d --name svc -e ASTRIA_ENV=test -p 8000:8000 astria-identity:ci
+          # identity wajib punya basis data; SQLite di folder kunci (milik pengguna non-root) cukup untuk smoke.
+          docker run -d --name svc -e ASTRIA_ENV=test             -e ASTRIA_DATABASE_URL=sqlite+aiosqlite:////var/lib/astria/identity/smoke.db             -p 8000:8000 astria-identity:ci
           for i in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:8000/ready; then exit 0; fi
             sleep 1
