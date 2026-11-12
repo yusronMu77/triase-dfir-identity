@@ -1,13 +1,13 @@
 [project]
 name = "astria-identity"
-version = "0.1.0"
+version = "0.2.0"
 description = "Akun, peran, dan sesi."
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = ["astria-common[otel]", "astria-contracts"]
+dependencies = ["astria-common[otel]", "astria-contracts", "argon2-cffi>=25.1", "cryptography>=46"]
 
 [project.scripts]
-astria-identity = "astria_identity.__main__:main"
+astria-identity = "astria_identity.cli:main"
 
 [dependency-groups]
 dev = [
@@ -18,8 +18,13 @@ dev = [
 
 # Dependensi privat lewat tag git (keputusan pemilik infra#3). Naikkan tag di sini, lalu `uv lock`.
 [tool.uv.sources]
-astria-common = { git = "https://github.com/yusronMu77/triase-dfir-common", tag = "v0.1.0" }
-astria-contracts = { git = "https://github.com/yusronMu77/triase-dfir-contracts", tag = "v0.1.0" }
+astria-common = { git = "https://github.com/yusronMu77/triase-dfir-common", tag = "v0.2.2" }
+astria-contracts = { git = "https://github.com/yusronMu77/triase-dfir-contracts", tag = "v0.4.0" }
+
+# common v0.2.2 menyematkan contracts v0.3.0, sedangkan identity butuh model identity-internal 0.2.0 dan event
+# identity.revoked dari v0.4.0. Hapus override ini saat common merilis versi yang menyematkan contracts v0.4.0.
+[tool.uv]
+override-dependencies = ["astria-contracts @ git+https://github.com/yusronMu77/triase-dfir-contracts@v0.4.0"]
 
 [build-system]
 requires = ["hatchling>=1.27,<2"]
@@ -38,6 +43,9 @@ target-version = "py314"
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "S", "W", "ASYNC"]
 ignore = ["S101", "S104", "ASYNC109"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["astria_identity"]
