@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import secrets
 from dataclasses import dataclass, field
@@ -50,6 +51,8 @@ class Identity:
     clock: Clock = field(default_factory=Clock)
     nonces: NonceCache = field(default_factory=NonceCache)
     bootstrapped: bool = False
+    schema_ready: asyncio.Event = field(default_factory=asyncio.Event)
+    """Diset oleh `Migrations` setelah skema sesuai baseline (atau setelah stamp); bootstrap menunggunya."""
 
     @property
     def engine(self) -> AsyncEngine:

@@ -143,6 +143,7 @@ class Bootstrap:
         while True:
             try:
                 await self.ident.db.wait_ready()
+                await self.ident.schema_ready.wait()
                 await self._once()
                 self.ident.bootstrapped = True
                 self.error = None
