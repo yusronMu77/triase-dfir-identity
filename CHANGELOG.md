@@ -14,6 +14,7 @@
 
 ### Changed
 
+- Deskripsi peran memakai istilah yang lazim: "feedback" (bukan "umpan balik") dan "secret" (bukan "rahasia"). Hanya teks; kode peran tidak berubah.
 - `astria-common` v0.2.3 (menyematkan `astria-contracts` v0.4.0). `override-dependencies` dihapus.
 - Pembuatan skema saat start: `create_all` diganti migrasi. `bootstrap-admin` dan `rotate-signing-key` memigrasikan skema dulu.
 - Basis data (`ASTRIA_DATABASE_URL`) kini wajib; kunci HMAC layanan disimpan terenkripsi di DB (berkas hanya menyemai).

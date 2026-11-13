@@ -21,10 +21,10 @@ from sqlalchemy import (
 
 ROLES = ("analis", "dfir", "pimpinan", "admin")
 ROLE_DESCRIPTIONS = {
-    "analis": "Antrean, detail kartu, bukti, umpan balik, digest, serah terima",
+    "analis": "Antrean, detail kartu, bukti, feedback, digest, serah terima",
     "dfir": "Seperti analis, ditambah kasus DFIR dan laporan",
     "pimpinan": "Hanya baca digest",
-    "admin": "Akun, peran, konfigurasi, rahasia, audit, metrik",
+    "admin": "Akun, peran, konfigurasi, secret, audit, metrik",
 }
 
 
