@@ -4,6 +4,8 @@
 
 ### Added
 
+- infra#9: pagar `ASTRIA_ENV` (`astria_common.envguard`) juga dijalankan untuk `migrate`, `bootstrap-admin`, dan `rotate-signing-key` sebelum basis data atau berkas kunci disentuh; `verify-config` melaporkan pelanggarannya. Uji gagal-mulai `tests/test_startup_env.py` lewat titik masuk `astria-identity`.
+
 - Migrasi Alembic: baseline `0001_baseline` untuk tabel identity dan outbox `astria-common`, berjalan di PostgreSQL dan SQLite. Start memakai `upgrade head`, atau `stamp head` tanpa DDL untuk DB lama yang dibuat lewat `create_all`; sebagian tabel ditolak. Komponen `migrations` di /ready.
 - Perintah `astria-identity migrate` (dan `--stamp`).
 - Uji migrasi `tests/test_migrations.py`: baseline dari kosong sama dengan metadata, stamp tanpa DDL, idempoten, skema sebagian ditolak, dan jalur start.

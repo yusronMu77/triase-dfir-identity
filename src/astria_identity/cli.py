@@ -13,6 +13,7 @@ import sys
 from collections.abc import Sequence
 from datetime import timedelta
 
+from astria_common import envguard
 from astria_common.app import run
 from astria_common.auth import load_or_create_signing_key
 from astria_common.db import Database
@@ -139,7 +140,7 @@ async def rotate_signing_key(settings: Settings) -> tuple[str, str]:
 
 
 def verify_config(settings: Settings) -> list[str]:
-    problems: list[str] = []
+    problems: list[str] = [f"ASTRIA_ENV={settings.env}: {p}" for p in envguard.violations(settings)]
     if settings.database_url is None:
         problems.append("ASTRIA_DATABASE_URL belum diisi")
     if settings.env == "prod" and settings.seed_users_file is not None:
@@ -173,6 +174,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     settings = Settings()
     command = args.command or "serve"
+    if command != "verify-config":
+        # Pagar ASTRIA_ENV sebelum basis data atau berkas kunci disentuh (serve juga diperiksa lagi di create_app).
+        envguard.enforce(settings)
     if command == "serve":
         run(build_app(settings), settings)
         return 0
